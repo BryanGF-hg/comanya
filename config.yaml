@@ -1,0 +1,26 @@
+scraping:
+  timeout: 30
+  max_retries: 3
+  delay_between_requests: 2
+  user_agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+
+scoring:
+  weights:
+    geographic_proximity: 0.35
+    relative_size: 0.35
+    licenses_won_24m: 0.20
+    google_reviews_score: 0.10
+  
+  size_multiplier:
+    min: 3
+    max: 20
+  
+  geographic_priority:
+    - "municipio"
+    - "area_metropolitana"
+    - "provincia"
+    - "nacional"
+
+export:
+  excel_format: "xlsx"
+  include_notes: true
