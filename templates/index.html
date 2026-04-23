@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Competitor Analyzer Web</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <style>
+        body { background-color: #f8f9fa; padding-top: 50px; }
+        .card { border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .btn-primary { background-color: #007bff; border: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <div class="card p-4">
+                    <h2 class="text-center mb-4">🔍 Analizador de Competidores</h2>
+                    
+                    {% with messages = get_flashed_messages() %}
+                      {% if messages %}
+                        {% for message in messages %}
+                          <div class="alert alert-danger">{{ message }}</div>
+                        {% endfor %}
+                      {% endif %}
+                    {% endwith %}
+
+                    <form action="/analizar" method="POST">
+                        <div class="mb-3">
+                            <label class="form-label">Nombre de la Empresa Lead</label>
+                            <input type="text" name="company" class="form-control" required>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">CNAE</label>
+                                <input type="text" name="cnae" class="form-control" placeholder="Ej: 6201">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Provincia</label>
+                                <input type="text" name="province" class="form-control" required>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Ciudad</label>
+                            <input type="text" name="city" class="form-control">
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Empleados</label>
+                                <input type="number" name="employees" class="form-control" value="0">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Facturación (M€)</label>
+                                <input type="number" step="0.1" name="revenue" class="form-control" value="0">
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100 py-2 mt-3">Generar Informe Excel</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

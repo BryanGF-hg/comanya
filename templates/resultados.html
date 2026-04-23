@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Resultados del Análisis</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .score-badge { font-size: 1.2rem; border-radius: 50px; }
+        .card-top { border-left: 5px solid #27ae60; }
+        .card-secondary { border-left: 5px solid #f39c12; }
+    </style>
+</head>
+<body class="bg-light">
+    <div class="container py-5">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>Análisis para: {{ lead.name }}</h1>
+<a href="{{ url_for('download_file', filename=file_url) }}" class="btn btn-success">
+    📥 DESCARGAR INFORME EXCEL
+</a>
+        </div>
+
+        <h3 class="mb-3 text-success">🏆 Top Competidores</h3>
+        <div class="row mb-5">
+            {% for comp in top %}
+            <div class="col-md-4 mb-3">
+                <div class="card h-100 card-top shadow-sm">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <h5 class="card-title">{{ comp.name }}</h5>
+                            <span class="badge bg-success score-badge">{{ "%.2f"|format(comp.total_score) }}</span>
+                        </div>
+                        <p class="text-muted small">{{ comp.city }}, {{ comp.province }}</p>
+                        <hr>
+                        <p><strong>CNAE:</strong> {{ comp.cnae }}</p>
+                        <p><strong>📞:</strong> {{ comp.phone }}</p>
+                        <p class="small text-primary"><em>{{ comp.score_motive }}</em></p>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <h3 class="mb-3 text-warning">📋 Competidores Secundarios</h3>
+        <div class="row">
+            {% for comp in secondary %}
+            <div class="col-md-6 mb-3">
+                <div class="card card-secondary shadow-sm">
+                    <div class="card-body d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-0">{{ comp.name }}</h6>
+                            <small>{{ comp.city }} | {{ comp.revenue }}M€</small>
+                        </div>
+                        <span class="badge bg-warning text-dark">{{ "%.2f"|format(comp.total_score) }}</span>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <div class="text-center mt-5">
+            <a href="/" class="btn btn-outline-secondary">🔍 Realizar nueva búsqueda</a>
+        </div>
+    </div>
+</body>
+</html>

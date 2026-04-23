@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Login - Comanya</title>
+    <style>
+        body { background: #f4f7f6; display: flex; justify-content: center; align-items: center; height: 100vh; font-family: sans-serif; }
+        .login-card { background: white; padding: 40px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 300px; }
+        input { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
+        button { width: 100%; background: #06d6a0; color: white; border: none; padding: 12px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="login-card">
+        <h2 style="text-align: center; color: #333;">Comanya CRM</h2>
+        <h3>Admin: <i> admin</i> Usuario: <i> comanya </i></h3>
+        <form method="POST">
+            <input type="text" name="username" placeholder="Usuario" required>
+            <input type="password" name="password" placeholder="Contraseña" required>
+            <button type="submit">ENTRAR</button>
+        </form>
+        {% with messages = get_flashed_messages() %}
+          {% if messages %}<p style="color:red; font-size:0.8rem;">{{ messages[0] }}</p>{% endif %}
+        {% endwith %}
+    </div>
+</body>
+</html>

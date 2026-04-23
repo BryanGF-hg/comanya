@@ -1,0 +1,308 @@
+<!doctype html>
+<html>
+<head>
+    <title>CRM Pro - Comanya</title>
+    <style>
+        :root { --main-color: #06d6a0; --bg-color: #7FFFD4; }
+        body { display: flex; font-family: 'Segoe UI', sans-serif; margin: 0; height: 100vh; background: #f4f7f6; }
+        
+        /* Sidebar */
+        nav { width: 250px; background: var(--bg-color); padding: 20px; display: flex; flex-direction: column; gap: 15px; box-shadow: 2px 0 5px rgba(0,0,0,0.1); }
+        nav a { background: white; color: var(--main-color); text-decoration: none; padding: 12px; font-weight: bold; border-radius: 8px; transition: 0.3s; }
+        nav a:hover, nav a.active { background: var(--main-color); color: white; transform: translateX(5px); }
+
+        main { flex: 1; padding: 30px; overflow-y: auto; }
+        
+        /* Form & Cards */
+        .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 25px; }
+        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; }
+        input { padding: 10px; border: 1px solid #ddd; border-radius: 6px; outline: none; }
+        input:focus { border-color: var(--main-color); }
+        
+        button { background: var(--main-color); color: white; border: none; padding: 12px; cursor: pointer; border-radius: 6px; font-weight: bold; transition: 0.3s; }
+        button:hover { background: #2bc4b4; transform: translateY(-2px); }
+
+        /* Loader */
+        #loader { display: none; margin-left: 10px; color: #666; font-style: italic; }
+        .spinner { border: 3px solid #f3f3f3; border-top: 3px solid var(--main-color); border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; display: inline-block; vertical-align: middle; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* Table */
+        .table-controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        table { width: 100%; border-collapse: collapse; background: white; border-radius: 10px; overflow: hidden; }
+        th { background: var(--main-color); color: white; padding: 15px; text-transform: uppercase; font-size: 0.85rem; }
+        td { padding: 15px; border-bottom: 1px solid #eee; text-align: center; }
+        tr:hover { background: #f1fffe; }
+        
+        .badge-excel { background: #e8fbf9; color: var(--main-color); padding: 5px 10px; border-radius: 4px; text-decoration: none; font-size: 0.8rem; border: 1px solid var(--main-color); }
+        
+    /* El Overlay (Fondo oscuro) */        
+    #overlay {
+        display: none; 
+        position: fixed; 
+        top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.7);
+        z-index: 1000;
+        justify-content: center;
+        align-items: center;
+    }
+
+    /* La Ventana de la "App" */
+    #modalResultados {
+        background: white;
+        width: 80%;
+        height: 85%;
+        border-radius: 15px;
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        animation: scaleIn 0.3s ease-out;
+    }
+
+    @keyframes scaleIn {
+        from { transform: scale(0.8); opacity: 0; }
+        to { transform: scale(1); opacity: 1; }
+    }
+
+    .modal-header {
+        background: var(--main-color);
+        color: white;
+        padding: 15px 25px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .btn-cerrar {
+        background: rgba(255,255,255,0.2);
+        border: none;
+        color: white;
+        font-size: 24px;
+        cursor: pointer;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+    }
+
+    .btn-cerrar:hover { background: rgba(255,255,255,0.4); }
+
+    .modal-body {
+        flex: 1;
+        padding: 25px;
+        overflow-y: auto;
+    }        
+        .btn-acc { padding: 8px 12px; border-radius: 6px; text-decoration: none; border: none; cursor: pointer; color: white; font-weight: bold; font-size: 0.8rem; transition: 0.3s; }
+        .btn-acc:hover { opacity: 0.8; transform: translateY(-1px); }
+        .yellow { background: #ffd166; color: #333 !important; }        
+        .red { background: #ff4d6d; }
+        .green { background: #06d6a0; }
+        .blue { background: #118ab2; }
+        .edit-input { border: 1px solid transparent; background: transparent; text-align: center; font-weight: bold; width: 100%; padding: 5px; border-radius: 4px; }
+        .edit-input:focus { border: 1px solid var(--main-color); background: white; outline: none; }
+    </style>    
+</head>
+<body>
+    <nav>
+        <h2 style="color: white; border-bottom: 2px solid white; padding-bottom: 10px;">Comanya Panel Admin</h2>
+        <a href="#" class="active">📊 DASHBOARD</a>
+        <a href="#">📈 REPORTES</a>
+        <a href="#">⚙️ CONFIG</a>
+        <a href="/logout" style="background: #ff4d6d; color: white; margin-top: auto;">🚪 CERRAR SESIÓN</a>        
+        
+        <h3 style="color: white; border-bottom: 2px solid white; padding-bottom: 10px;">Paginas para el CNAE</h3>    
+          <a href="https://ranking-empresas.eleconomista.es/ranking_empresas_nacional.html">eleconomista.es</a>
+          <a href="https://www.einforma.com/empresas/CNAE.html">einforma.com</a>
+                        
+    </nav>
+
+    <main>
+      {% if role == 'admin' %}
+        <div class="card">
+            <h3 style="margin-top:0">🔍 Iniciar Nuevo Escaneo</h3>
+            <form id="formAnalizar" action="/analizar" method="POST">
+                <div class="form-grid">
+                    <input type="text" name="company" placeholder="Empresa Lead(IBERDROLA,MOEVE,etc)" required>
+                    <input type="text" name="cnae" placeholder="CNAE(6201,1920)">
+                    <input type="text" name="province" placeholder="Provincia(MADRID,BILBAO)">
+                    <input type="number" name="employees" placeholder="(Opcional) Empleados">
+                    <input type="number" step="0.1" name="revenue" placeholder="Opcional) Facturación M€">
+                    <button type="submit" onclick="showLoader()">LANZAR SCRAPER</button>
+                </div>
+            </form>
+            <div id="loader"><div class="spinner"></div> El scraper está trabajando en segundo plano, por favor espera...</div>
+        </div>
+      {% endif %}            
+
+        <div class="card">
+            <div class="table-controls">
+                <h3>Histórico de Clientes</h3>
+                <input type="text" id="busqueda" placeholder="Filtrar por nombre o provincia..." onkeyup="filtrarTabla()" style="width: 300px;">
+            </div>
+            <table id="tablaClientes">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>EMPRESA</th>
+                        <th>CNAE</th>
+                        <th>PROVINCIA</th>
+                        <th>M€</th>
+                        <th>EXCEL</th>
+                    </tr>
+                </thead>
+                <tbody id="cuerpoTabla">
+                    {% for fila in datos %}
+                    <tr>
+                        <td>{{ fila.id }}</td>
+                        <td><strong>
+                           <input type="text" value="{{ fila.empresa }}" id="emp-{{ fila.id }}" class="edit-input">
+                        </strong></td>
+                        <td>{{ fila.cnae }}</td>
+                        <td>{{ fila.provincia }}</td>
+                        <td>{{ fila.facturacion }}</td>
+                        <td>
+                          <div style="display:flex; gap:5px; justify-content: center;">
+                          <button onclick="previewExcel('{{ fila.archivo_excel }}')" class="btn-acc yellow" title="Vista Previa">👁️</button>                          
+                          <a href="/download/{{ fila.archivo_excel }}" class="btn-acc blue">Excel</a>
+                {% if role == 'admin' %}              
+                          <button onclick="updateRow({{ fila.id }})" class="btn-acc green">💾</button>
+                          
+                          <a href="/eliminar/{{ fila.id }}" 
+                             onclick="return confirm('¿Seguro que quieres borrar este registro?')" 
+                             class="btn-acc red">🗑️</a>
+                {% endif %}                             
+                          </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div id="overlay">
+            <div id="modalResultados">
+                <div class="modal-header">
+                    <h2 id="modalTitle" style="margin:0">📊 Resultados del Análisis</h2>
+                    <button class="btn-cerrar" onclick="cerrarModal()">×</button>
+                </div>
+                <div class="modal-body" id="contenidoResultados">
+                    </div>
+            </div>
+        </div>        
+    </main>
+
+<script>
+    // 1. Mostrar/Ocultar Loader
+    function showLoader() {
+        document.getElementById('loader').style.display = 'block';
+    }
+
+    function cerrarModal() {
+        document.getElementById('overlay').style.display = 'none';
+        location.reload(); 
+    }
+
+    // 2. Filtrado en tiempo real
+    function filtrarTabla() {
+        let input = document.getElementById("busqueda").value.toLowerCase();
+        let filas = document.getElementById("cuerpoTabla").getElementsByTagName("tr");
+        for (let i = 0; i < filas.length; i++) {
+            let textoFila = filas[i].innerText.toLowerCase();
+            filas[i].style.display = textoFila.includes(input) ? "" : "none";
+        }
+    }
+
+    // 3. Envío de Formulario (AJAX) para el Scraper
+    document.getElementById('formAnalizar').onsubmit = async function(e) {
+        e.preventDefault();
+        showLoader();
+
+        let formData = new FormData(this);
+        
+        try {
+            // IMPORTANTE: La ruta debe ser /analizar como en tu app servidor.py
+            let response = await fetch('/analizar', {
+                method: 'POST',
+                body: formData
+            });
+            
+            if (!response.ok) throw new Error('Error en el servidor');
+            
+            let html = await response.text();
+            
+            document.getElementById('loader').style.display = 'none';
+            document.getElementById('contenidoResultados').innerHTML = html;
+            document.getElementById('overlay').style.display = 'flex';
+            
+        } catch (error) {
+            alert("Error en el análisis: " + error.message);
+            document.getElementById('loader').style.display = 'none';
+        }
+    };
+
+    // 4. Función para Actualizar (CRUD: Update)
+    async function updateRow(id) {
+        const nuevaEmpresa = document.getElementById('emp-' + id).value;
+        
+        let formData = new FormData();
+        formData.append('id', id);
+        formData.append('empresa', nuevaEmpresa);
+        // Puedes añadir más campos aquí si los haces editables en la tabla
+
+        try {
+            let response = await fetch('/actualizar', {
+                method: 'POST',
+                body: formData
+            });
+            if (response.ok) {
+                alert("¡Registro actualizado!");
+            } else {
+                alert("Error al actualizar");
+            }
+        } catch (error) {
+            console.error(error);
+        }
+    }
+
+async function previewExcel(filename) {
+    showLoader();
+    try {
+        const response = await fetch(`/preview/${filename}`);
+        const data = await response.json();
+
+        if (data.error) throw new Error(data.error);
+
+        // Construimos una tabla HTML con los datos del Excel
+        let html = `<h3>Vista Previa: ${filename}</h3>`;
+        html += '<div style="overflow-x:auto;"><table style="font-size:0.8rem; min-width:100%"><thead><tr>';
+        
+        // Cabeceras
+        data.columnas.forEach(col => {
+            html += `<th style="background:#eee; color:#333; padding:5px;">${col}</th>`;
+        });
+        html += '</tr></thead><tbody>';
+
+        // Filas (mostramos las primeras 20 para no saturar)
+        data.filas.slice(0, 20).forEach(fila => {
+            html += '<tr>';
+            fila.forEach(celda => {
+                html += `<td style="padding:5px; border:1px solid #eee;">${celda}</td>`;
+            });
+            html += '</tr>';
+        });
+        html += '</tbody></table></div>';
+        if(data.filas.length > 20) html += '<p><em>* Mostrando solo las primeras 20 filas...</em></p>';
+
+        // Inyectamos en el modal que ya tienes para los resultados
+        document.getElementById('contenidoResultados').innerHTML = html;
+        document.getElementById('loader').style.display = 'none';
+        document.getElementById('overlay').style.display = 'flex';
+
+    } catch (error) {
+        alert("No se pudo generar la vista previa: " + error.message);
+        document.getElementById('loader').style.display = 'none';
+    }
+}    
+</script>
+</body>
+</html>
