@@ -18,6 +18,8 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from models.company import Company, CompetitorAnalysis
 from scrapers.google_maps import GoogleMapsScraper
 from scrapers.eleconomista import ElEconomistaScraper
+from scrapers.contact_scraper import ContactScraper
+
 from scoring.competitor_score import CompetitorScorer
 from export.excel_export import ExcelExporter
 
@@ -151,6 +153,33 @@ class CompetitorAnalyzer:
             print(f"\n📋 Competidores secundarios:")
             for i, comp in enumerate(result['secondary'], 1):
                 print(f"   {i}. {comp.name} (Score: {comp.total_score:.4f})")
+        
+        # Después de obtener los competidores
+        competitors = self._generate_demo_companies(cnae, province, city)
+        
+        # NUEVO: Enriquecer datos de competidores
+        from scrapers.contact_scraper import ContactScraper
+        from scrapers.financial_scraper import FinancialScraper
+        
+        contact_scraper = ContactScraper(self.config)
+        financial_scraper = FinancialScraper(self.config)
+        
+        for comp in competitors:
+            # Buscar contacto
+            contact_info = contact_scraper.search_contact_info(comp.name, comp.province)
+            if contact_info.get('phone'):
+                comp.phone = contact_info['phone']
+            if contact_info.get('email'):
+                comp.email = contact_info['email']
+            if contact_info.get('website'):
+                comp.website = contact_info['website']
+            
+            # Buscar datos financieros
+            financial_info = financial_scraper.search_financial_data(comp.name, comp.cnae)
+            if financial_info.get('revenue'):
+                comp.revenue = financial_info['revenue']
+            if financial_info.get('employees'):
+                comp.employees = financial_info['employees']        
         
         return CompetitorAnalysis(
             lead_company=lead,
