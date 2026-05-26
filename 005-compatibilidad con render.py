@@ -1,5 +1,4 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, session, send_file
-import mysql.connector
 import os
 import sqlite3
 import pandas as pd
@@ -22,6 +21,15 @@ db_config = {
     "port": int(os.environ.get("DB_PORT", 3306))
 }
 
+def get_db():
+    try:
+        conn = sqlite3.connect("data.db")
+        conn.row_factory = sqlite3.Row
+        return conn, conn.cursor()
+    except Exception as e:
+        print(f"❌ Error conectando a BD: {e}")
+        return None, None
+
 def init_db():
     conn = sqlite3.connect("data.db")
     cur = conn.cursor()
@@ -39,16 +47,7 @@ def init_db():
     """)
     conn.commit()
     conn.close()
-
-def get_db():
-    try:
-        conn = sqlite3.connect("data.db")
-        conn.row_factory = sqlite3.Row
-        return conn, conn.cursor()
-    except Exception as e:
-        print(f"❌ Error conectando a BD: {e}")
-        return None, None
-
+    
 # ------------------------
 # AUTH
 # ------------------------
@@ -92,13 +91,13 @@ def backend():
     conn, cur = get_db()
     cur.execute("SELECT * FROM entrada ORDER BY id DESC")
     datos = cur.fetchall()
-    cur.close()
     conn.close()
-    return render_template(
-        "backend.html",
-        datos=datos,
-        role=session.get("role")   # ✅ CLAVE
-    )
+    except Exception as e:
+        print(f"❌ Error BD: {e}")
+        datos = []
+
+    return render_template("backend.html", datos=datos, role=session.get("role"))
+
 
 # ------------------------
 # ANALIZAR (CLAVE)
@@ -181,7 +180,7 @@ def analizar():
         cur.execute("""
             INSERT INTO entrada
             (empresa, cnae, provincia, empleados, facturacion, archivo_excel)
-            VALUES (%s, %s, %s, %s, %s, %s)
+            VALUES (?, ?, ?, ?, ?, ?)
         """, (
             data["empresa"],
             data["cnae"],
@@ -314,5 +313,6 @@ def download(filename):
 if __name__ == "__main__":
     if not os.path.exists("output_excel"):
         os.makedirs("output_excel")
+    init_db() 
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=False)
