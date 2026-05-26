@@ -13,13 +13,6 @@ app.secret_key = "comanya123$"
 # ------------------------
 # CONFIG BD
 # ------------------------
-db_config = {
-    "host": os.environ.get("DB_HOST"),
-    "user": os.environ.get("DB_USER"),
-    "password": os.environ.get("DB_PASSWORD"),
-    "database": os.environ.get("DB_NAME"),
-    "port": int(os.environ.get("DB_PORT", 3306))
-}
 
 def get_db():
     try:
@@ -285,7 +278,7 @@ def crear():
         conn, cur = get_db()
         cur.execute("""
             INSERT INTO entrada (empresa, cnae, provincia)
-            VALUES (%s, %s, %s)
+            VALUES (?, ?, ?)
         """, (empresa, cnae, provincia))
         conn.commit()
         cur.close()
