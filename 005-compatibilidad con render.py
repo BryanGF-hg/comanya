@@ -1,27 +1,26 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, session, send_file
+from flask import (
+    Flask, render_template, request, redirect,
+    url_for, flash, session, send_file
+)
 import os
 import sqlite3
 import pandas as pd
 from functools import wraps
 from datetime import datetime
 
-from scraper import run_scraper
-
+# ========================
+# APP
+# ========================
 app = Flask(__name__, template_folder="templates")
 app.secret_key = "comanya123$"
 
-# ------------------------
-# CONFIG BD
-# ------------------------
-
+# ========================
+# DATABASE (SQLite)
+# ========================
 def get_db():
-    try:
-        conn = sqlite3.connect("data.db")
-        conn.row_factory = sqlite3.Row
-        return conn, conn.cursor()
-    except Exception as e:
-        print(f"❌ Error conectando a BD: {e}")
-        return None, None
+    conn = sqlite3.connect("data.db")
+    conn.row_factory = sqlite3.Row
+    return conn, conn.cursor()
 
 def init_db():
     conn = sqlite3.connect("data.db")
@@ -40,10 +39,10 @@ def init_db():
     """)
     conn.commit()
     conn.close()
-    
-# ------------------------
+
+# ========================
 # AUTH
-# ------------------------
+# ========================
 def login_required(f):
     @wraps(f)
     def wrapper(*args, **kwargs):
@@ -52,9 +51,9 @@ def login_required(f):
         return f(*args, **kwargs)
     return wrapper
 
-# ------------------------
+# ========================
 # ROUTES
-# ------------------------
+# ========================
 @app.route("/")
 def index():
     return redirect(url_for("login"))
@@ -71,6 +70,7 @@ def login():
             return redirect(url_for("backend"))
 
         flash("Credenciales incorrectas")
+
     return render_template("login.html")
 
 @app.route("/logout")
@@ -78,23 +78,30 @@ def logout():
     session.clear()
     return redirect(url_for("login"))
 
+# ========================
+# BACKEND
+# ========================
 @app.route("/backend")
 @login_required
 def backend():
-    conn, cur = get_db()
-    cur.execute("SELECT * FROM entrada ORDER BY id DESC")
-    datos = cur.fetchall()
-    conn.close()
+    try:
+        conn, cur = get_db()
+        cur.execute("SELECT * FROM entrada ORDER BY id DESC")
+        datos = cur.fetchall()
+        conn.close()
     except Exception as e:
         print(f"❌ Error BD: {e}")
         datos = []
 
-    return render_template("backend.html", datos=datos, role=session.get("role"))
+    return render_template(
+        "backend.html",
+        datos=datos,
+        role=session.get("role")
+    )
 
-
-# ------------------------
-# ANALIZAR (CLAVE)
-# ------------------------
+# ========================
+# ANALIZAR (MVP)
+# ========================
 @app.route("/analizar", methods=["POST"])
 @login_required
 def analizar():
@@ -113,77 +120,36 @@ def analizar():
         facturacion = request.form.get("revenue")
         facturacion = float(facturacion) if facturacion and facturacion.strip() else None
 
-
-        # 🔹 Aquí llamarías a tu scraper/análisis real
-        # Simulamos datos para el ejemplo
-        class Dummy:
-            def __init__(self, name):
-                self.name = name
-                self.city = ""
-                self.province = provincia
-                self.cnae = cnae
-                self.total_score = 0.85
-        lead = Dummy(empresa)
-
-        top = [
-            Dummy("Competidor A"),
-            Dummy("Competidor B"),
-            Dummy("Competidor C"),
-        ]
-
-        secondary = [
-            Dummy("Competidor D"),
-            Dummy("Competidor E"),
-        ]
-
-        # ✅ IMPORTANTE: devolver SOLO el fragmento
-        return render_template(
-            "fragmento_resultados.html",
-            lead=lead,
-            top=top,
-            secondary=secondary,
-            file_url=f"{empresa}_dummy.xlsx"
-        )
-
-
-
-        print(f"📊 Analizando: {empresa} | {cnae} | {provincia}")
-
-        # SCRAPER
-        data = run_scraper(
-            company=empresa,
-            cnae=cnae,
-            provincia=provincia,
-            empleados=empleados,
-            facturacion=facturacion
-        )
-
-        # GENERAR EXCEL
+        # ---- SIMULACIÓN DE RESULTADO ----
         if not os.path.exists("output_excel"):
             os.makedirs("output_excel")
 
         filename = f"{empresa}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
         filepath = os.path.join("output_excel", filename)
 
-        pd.DataFrame([data]).to_excel(filepath, index=False)
-        data["archivo_excel"] = filepath
+        pd.DataFrame([{
+            "empresa": empresa,
+            "cnae": cnae,
+            "provincia": provincia,
+            "empleados": empleados,
+            "facturacion": facturacion
+        }]).to_excel(filepath, index=False)
 
-        # INSERT BD (100% COMPATIBLE)
+        # ---- INSERT SQLITE ----
         conn, cur = get_db()
         cur.execute("""
             INSERT INTO entrada
             (empresa, cnae, provincia, empleados, facturacion, archivo_excel)
             VALUES (?, ?, ?, ?, ?, ?)
         """, (
-            data["empresa"],
-            data["cnae"],
-            data["provincia"],
-            data["empleados"],
-            data["facturacion"],
-            data["archivo_excel"]
+            empresa,
+            cnae,
+            provincia,
+            empleados,
+            facturacion,
+            filepath
         ))
         conn.commit()
-        cur.close()
         conn.close()
 
         flash("✅ Análisis completado correctamente")
@@ -195,6 +161,9 @@ def analizar():
         flash(f"❌ Error: {e}")
         return redirect(url_for("backend"))
 
+# ========================
+# CRUD
+# ========================
 @app.route("/actualizar", methods=["POST"])
 @login_required
 def actualizar():
@@ -207,11 +176,10 @@ def actualizar():
 
         conn, cur = get_db()
         cur.execute(
-            "UPDATE entrada SET empresa=%s WHERE id=%s",
+            "UPDATE entrada SET empresa=? WHERE id=?",
             (empresa, id_reg)
         )
         conn.commit()
-        cur.close()
         conn.close()
 
         return {"success": True}
@@ -227,22 +195,31 @@ def eliminar(id):
 
     try:
         conn, cur = get_db()
-
-        # borrar excel si existe
-        cur.execute("SELECT archivo_excel FROM entrada WHERE id=%s", (id,))
+        cur.execute("SELECT archivo_excel FROM entrada WHERE id=?", (id,))
         row = cur.fetchone()
+
         if row and row["archivo_excel"] and os.path.exists(row["archivo_excel"]):
             os.remove(row["archivo_excel"])
 
-        cur.execute("DELETE FROM entrada WHERE id=%s", (id,))
+        cur.execute("DELETE FROM entrada WHERE id=?", (id,))
         conn.commit()
-        cur.close()
         conn.close()
 
         flash("✅ Registro eliminado")
     except Exception as e:
         flash(f"❌ Error: {e}")
 
+    return redirect(url_for("backend"))
+
+# ========================
+# FILES
+# ========================
+@app.route("/download/<path:filename>")
+@login_required
+def download(filename):
+    if os.path.exists(filename):
+        return send_file(filename, as_attachment=True)
+    flash("Archivo no encontrado")
     return redirect(url_for("backend"))
 
 @app.route("/preview/<path:filename>")
@@ -252,8 +229,7 @@ def preview(filename):
         if not os.path.exists(filename):
             return {"error": "Archivo no encontrado"}, 404
 
-        df = pd.read_excel(filename).fillna("")
-        df = df.head(20)
+        df = pd.read_excel(filename).fillna("").head(20)
 
         return {
             "columnas": df.columns.tolist(),
@@ -262,50 +238,14 @@ def preview(filename):
         }
     except Exception as e:
         return {"error": str(e)}, 500
-        
-@app.route("/crear", methods=["POST"])
-@login_required
-def crear():
-    if session.get("role") != "admin":
-        flash("No autorizado")
-        return redirect(url_for("backend"))
 
-    try:
-        empresa = request.form.get("empresa")
-        cnae = request.form.get("cnae")
-        provincia = request.form.get("provincia")
-
-        conn, cur = get_db()
-        cur.execute("""
-            INSERT INTO entrada (empresa, cnae, provincia)
-            VALUES (?, ?, ?)
-        """, (empresa, cnae, provincia))
-        conn.commit()
-        cur.close()
-        conn.close()
-
-        flash("✅ Registro creado")
-    except Exception as e:
-        flash(f"❌ Error: {e}")
-
-    return redirect(url_for("backend"))         
-# ------------------------
-# DESCARGA
-# ------------------------
-@app.route("/download/<path:filename>")
-@login_required
-def download(filename):
-    if os.path.exists(filename):
-        return send_file(filename, as_attachment=True)
-    flash("Archivo no encontrado")
-    return redirect(url_for("backend"))
-
-# ------------------------
-# MAIN
-# ------------------------
+# ========================
+# MAIN (RENDER READY)
+# ========================
 if __name__ == "__main__":
     if not os.path.exists("output_excel"):
         os.makedirs("output_excel")
-    init_db() 
+
+    init_db()
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=False)
