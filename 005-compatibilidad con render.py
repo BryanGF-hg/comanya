@@ -289,7 +289,5 @@ def download(filename):
 if __name__ == "__main__":
     if not os.path.exists("output_excel"):
         os.makedirs("output_excel")
-
-    print("🚀 004-app iniciado en http://localhost:5000")
-    app.run(debug=True, port=5000, use_reloader=False)
-
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=False)
