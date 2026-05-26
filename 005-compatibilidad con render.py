@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, session, send_file
 import mysql.connector
 import os
+import sqlite3
 import pandas as pd
 from functools import wraps
 from datetime import datetime
@@ -14,15 +15,39 @@ app.secret_key = "comanya123$"
 # CONFIG BD
 # ------------------------
 db_config = {
-    "host": "localhost",
-    "user": "comanya",
-    "password": "comanya",
-    "database": "comanya"
+    "host": os.environ.get("DB_HOST"),
+    "user": os.environ.get("DB_USER"),
+    "password": os.environ.get("DB_PASSWORD"),
+    "database": os.environ.get("DB_NAME"),
+    "port": int(os.environ.get("DB_PORT", 3306))
 }
 
+def init_db():
+    conn = sqlite3.connect("data.db")
+    cur = conn.cursor()
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS entrada (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            empresa TEXT,
+            cnae TEXT,
+            provincia TEXT,
+            empleados INTEGER,
+            facturacion REAL,
+            archivo_excel TEXT
+        )
+    """)
+    conn.commit()
+    conn.close()
+
 def get_db():
-    conn = mysql.connector.connect(**db_config)
-    return conn, conn.cursor(dictionary=True)
+    try:
+        conn = sqlite3.connect("data.db")
+        conn.row_factory = sqlite3.Row
+        return conn, conn.cursor()
+    except Exception as e:
+        print(f"❌ Error conectando a BD: {e}")
+        return None, None
 
 # ------------------------
 # AUTH
